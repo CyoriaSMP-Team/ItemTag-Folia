@@ -28,7 +28,7 @@ public class RenamableOld extends CustomFlag {
         }
         if (ItemTag.getTagItem(event.getInventory().getItem(0)).hasBooleanTag(RENAMABLE_KEY) ||
                 ItemTag.getTagItem(event.getInventory().getItem(1)).hasBooleanTag(RENAMABLE_KEY)) {
-            TaskScheduler.runAtEntity(ItemTag.get(), event.getPlayer(), 1L, () -> {
+            TaskScheduler.runAtEntity(ItemTag.get(), event.getWhoClicked(), 1L, () -> {
                 if (ItemTag.getTagItem(event.getInventory().getItem(0)).hasBooleanTag(RENAMABLE_KEY) ||
                         ItemTag.getTagItem(event.getInventory().getItem(1)).hasBooleanTag(RENAMABLE_KEY)) {
                     event.getInventory().setItem(2, null);
