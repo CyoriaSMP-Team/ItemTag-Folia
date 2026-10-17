@@ -34,3 +34,9 @@ Run `python3 scripts/folia-static-guard.py` locally for the static check. GitHub
 - Before the live check, the original ItemTag JAR and its configuration were backed up. A copy of the development artifact with only `folia-supported: true` added enabled on the Folia 1.21.11 server and logged `ItemTag # Enabled (took 33 ms)`; the server then reached `Done`.
 - The original JAR was restored after this startup-only smoke test. The branch now carries `folia-supported: true` for the requested iterative Folia testing; this metadata does not certify the remaining audit paths.
 - No player joined, and item use, anvil interactions, world travel, and multi-region concurrency remain unverified. This result does not complete the Folia safety audit.
+
+## Iterative live deployment (2026-10-17)
+
+- Commit `ddc6420227890d7eb918ae0c8e9182bb9bb19171` passed push and pull-request CI run `39047989424`; its `itemtag-folia-development-12` artifact contains `folia-supported: true` and has SHA-256 `22cb926d56049f251547d8f552f920bd89964b24214c473acd3f3c6afb0467a5`.
+- That exact artifact is now installed on CyoriaSMP Folia 1.21.11. Startup logged `ItemTag # Enabled (took 34 ms)` and the server reached `Done`; the original JAR remains in the rollback directory.
+- The server had 0 players during deployment. This confirms startup only; item behavior, player scheduling, GUI interactions and multi-region safety are still unverified.
