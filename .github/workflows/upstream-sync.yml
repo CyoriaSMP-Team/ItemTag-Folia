@@ -5,9 +5,6 @@ on:
   schedule:
     - cron: '41 3 * * *'
 
-permissions:
-  contents: read
-
 jobs:
   sync:
     permissions:
