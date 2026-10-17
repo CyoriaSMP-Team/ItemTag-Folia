@@ -7,6 +7,7 @@ import emanondev.itemedit.utility.ItemUtils;
 import emanondev.itemedit.utility.VersionUtils;
 import emanondev.itemtag.EffectsInfo;
 import emanondev.itemtag.ItemTag;
+import emanondev.itemtag.utility.TaskScheduler;
 import emanondev.itemtag.command.ItemTagCommand;
 import emanondev.itemtag.command.ListenerSubCmd;
 import emanondev.itemtag.equipmentchange.EquipmentChangeEvent;
@@ -22,7 +23,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -300,8 +300,7 @@ public class Effects extends ListenerSubCmd {
 
     @EventHandler
     private void onPlayerRespawn(PlayerRespawnEvent event) {
-        new BukkitRunnable() {
-            public void run() {
+        TaskScheduler.runAtEntity(ItemTag.get(), event.getPlayer(), 1L, () -> {
                 for (EquipmentSlot slot : InventoryUtils.getPlayerEquipmentSlots()) {
                     ItemStack equip = getEquip(event.getPlayer(), slot);
                     if (ItemUtils.isAirOrNull(equip))
@@ -332,8 +331,7 @@ public class Effects extends ListenerSubCmd {
                         }
                     }
                 }
-            }
-        }.runTaskLater(ItemTag.get(), 1L); //effect are resetted just after playerrespawnevent
+        }); // effect are reset just after PlayerRespawnEvent
 
     }
 
@@ -357,7 +355,7 @@ public class Effects extends ListenerSubCmd {
     @EventHandler(ignoreCancelled = true)
     private void event(PlayerItemConsumeEvent event) {
         if (event.getItem().getType() == Material.MILK_BUCKET)
-            Bukkit.getScheduler().runTaskLater(this.getPlugin(), () -> restoreEffects(event.getPlayer()), 1L);
+            TaskScheduler.runAtEntity(this.getPlugin(), event.getPlayer(), 1L, () -> restoreEffects(event.getPlayer()));
     }
 
 }

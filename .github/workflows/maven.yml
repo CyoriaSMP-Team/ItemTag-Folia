@@ -1,0 +1,37 @@
+name: ItemTag Folia 1.21.11 development build
+on:
+  push:
+    branches: ['folia/1.21.11']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: itemtag-folia-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Check known Folia scheduler hazards
+        run: python3 scripts/folia-static-guard.py
+      - name: Compile and verify plugin
+        run: mvn --batch-mode --no-transfer-progress verify
+      - name: Save experimental JAR (not production-ready)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itemtag-folia-development-${{ github.run_number }}
+          path: |
+            target/*.jar
+            !target/*-sources.jar
+            !target/*-javadoc.jar
+          if-no-files-found: warn
+          retention-days: 7

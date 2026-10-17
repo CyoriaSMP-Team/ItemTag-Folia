@@ -8,6 +8,7 @@ import emanondev.itemedit.utility.CompleteUtility;
 import emanondev.itemedit.utility.InventoryUtils;
 import emanondev.itemedit.utility.ItemUtils;
 import emanondev.itemtag.ItemTag;
+import emanondev.itemtag.utility.TaskScheduler;
 import emanondev.itemtag.TagItem;
 import emanondev.itemtag.command.ListenerSubCmd;
 import emanondev.itemtag.equipmentchange.EquipmentChangeEvent;
@@ -114,7 +115,7 @@ public class WearPermission extends ListenerSubCmd {
             return;
         }
 
-        Bukkit.getScheduler().runTaskLater(getPlugin(), () -> {
+        TaskScheduler.runAtEntity(getPlugin(), player, 1L, () -> {
             if (!player.isOnline())
                 return;
             ItemStack originalItem = InventoryUtils.getItem(player, event.getSlotType());
@@ -141,7 +142,7 @@ public class WearPermission extends ListenerSubCmd {
                 api.setCooldown(player,cooldownKey,1, TimeUnit.SECONDS);
                 Util.sendMessage(player, UtilsString.fix(tagItem.getString(WEARMSG_KEY), player, true, "%permission%", perm));
             }
-        }, 1L);
+        });
 
     }
 

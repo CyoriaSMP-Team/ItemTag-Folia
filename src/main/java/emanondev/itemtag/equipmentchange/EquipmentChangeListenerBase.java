@@ -22,7 +22,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
+import emanondev.itemtag.utility.TaskScheduler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -30,28 +30,17 @@ import java.util.*;
 @Slf4j
 public abstract class EquipmentChangeListenerBase implements Listener {
 
-    protected final HashMap<Player, EnumMap<EquipmentSlot, ItemStack>> equips = new HashMap<>();
-    protected final HashSet<Player> clickDrop = new HashSet<>();
-    private int maxCheckedPlayerPerTick = 5;
-    private TimerCheckTask timerTask = null;
+    protected final Map<Player, EnumMap<EquipmentSlot, ItemStack>> equips = new java.util.concurrent.ConcurrentHashMap<>();
+    protected final Set<Player> clickDrop = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private int timerCheckFrequencyTicks = 10;
+    private final Map<UUID, Object> playerTasks = new java.util.concurrent.ConcurrentHashMap<>();
 
     public void reload() {
-        if (timerTask != null) {
-            timerTask.cancel();
-        }
-        long timerCheckFrequencyTicks = Math.max(5, ItemTag.get().getConfig().getInteger("equipment_change.frequency_ticks", 10));
-        maxCheckedPlayerPerTick = Math.max(1, ItemTag.get().getConfig().getInteger("equipment_change.max_checked_players_per_tick", 5));
-        for (Player p : new ArrayList<>(equips.keySet())) {
-            untrackPlayer(p);
-        }
-
-        equips.clear();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            trackPlayer(p);
-        }
-
-        timerTask = new TimerCheckTask();
-        timerTask.runTaskTimer(ItemTag.get(), timerCheckFrequencyTicks, timerCheckFrequencyTicks);
+        timerCheckFrequencyTicks = Math.max(5, ItemTag.get().getConfig().getInteger("equipment_change.frequency_ticks", 10));
+        for (Object task : playerTasks.values()) TaskScheduler.cancel(task);
+        playerTasks.clear();
+        // Re-arm already tracked players on their own entity schedulers. Do not inspect inventories here.
+        for (Player p : new ArrayList<>(equips.keySet())) startPlayerChecks(p);
 
     }
 
@@ -71,6 +60,7 @@ public abstract class EquipmentChangeListenerBase implements Listener {
             return false;
         EnumMap<EquipmentSlot, ItemStack> map = new EnumMap<>(EquipmentSlot.class);
         equips.put(p, map);
+        startPlayerChecks(p);
         for (EquipmentSlot slot : InventoryUtils.getPlayerEquipmentSlots()) {
             map.put(slot, null);
             onEquipChange(p, EquipmentChangeEvent.EquipMethod.JOIN, slot, null, getEquip(p, slot));
@@ -86,6 +76,7 @@ public abstract class EquipmentChangeListenerBase implements Listener {
             onEquipChange(p, EquipmentChangeEvent.EquipMethod.QUIT, slot, map.get(slot), null);
         }
         equips.remove(p);
+        TaskScheduler.cancel(playerTasks.remove(p.getUniqueId()));
         return true;
     }
 
@@ -113,7 +104,7 @@ public abstract class EquipmentChangeListenerBase implements Listener {
         if (!equips.containsKey(event.getPlayer()))
             return; // some plugins teleport players just after login, before join this listener
         new SlotCheck(event.getPlayer(), EquipmentChangeEvent.EquipMethod.PLUGIN_WORLD_CHANGE, InventoryUtils.getPlayerEquipmentSlots())
-                .runTaskLater(ItemTag.get(), 1L);
+                .schedule();
     }
 
     protected void handle(PlayerRespawnEvent event) {
@@ -157,7 +148,7 @@ public abstract class EquipmentChangeListenerBase implements Listener {
             onEquipChange(e.getPlayer(), EquipmentChangeEvent.EquipMethod.BROKE, slots.get(0), e.getBrokenItem(), null);
             return;
         }
-        new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.BROKE, slots).runTaskLater(ItemTag.get(), 1L);
+        new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.BROKE, slots).schedule();
     }
 
     protected void handle(PlayerArmorStandManipulateEvent event) {
@@ -217,7 +208,7 @@ public abstract class EquipmentChangeListenerBase implements Listener {
             onEquipChange(event.getPlayer(), EquipmentChangeEvent.EquipMethod.SHEEP_COLOR, slot, handItem, null);
             return;
         }
-        new SlotCheck(event.getPlayer(), EquipmentChangeEvent.EquipMethod.USE_ON_ENTITY, slot).runTaskLater(ItemTag.get(), 1L);
+        new SlotCheck(event.getPlayer(), EquipmentChangeEvent.EquipMethod.USE_ON_ENTITY, slot).schedule();
     }
 
     protected void handle(PlayerInteractEvent e) {
@@ -240,15 +231,15 @@ public abstract class EquipmentChangeListenerBase implements Listener {
                     if (e.getPlayer().getGameMode() != GameMode.CREATIVE)
                         onEquipChange(e.getPlayer(), EquipmentChangeEvent.EquipMethod.RIGHT_CLICK, slot, e.getItem(), null);
                 } else if (e.getItem().getAmount() == 1)
-                    new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.USE, slot).runTaskLater(ItemTag.get(), 1L);
+                    new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.USE, slot).schedule();
                 return;
             case RIGHT_CLICK_BLOCK:
                 if (e.useItemInHand() == Event.Result.DENY)
                     return;
                 if (type != null && ItemUtils.isAirOrNull(getEquip(e.getPlayer(), type))) {
-                    new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.RIGHT_CLICK, slot, type).runTaskLater(ItemTag.get(), 1L);
+                    new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.RIGHT_CLICK, slot, type).schedule();
                 } else if (e.getItem().getAmount() == 1)
-                    new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.USE, slot).runTaskLater(ItemTag.get(), 1L);
+                    new SlotCheck(e.getPlayer(), EquipmentChangeEvent.EquipMethod.USE, slot).schedule();
                 return;
             default:
                 return;
@@ -271,11 +262,11 @@ public abstract class EquipmentChangeListenerBase implements Listener {
             onEquipChange(event.getPlayer(), EquipmentChangeEvent.EquipMethod.CONSUME, slots.get(0), event.getItem(),
                     event.getItem().getType() == Material.MILK_BUCKET ? new ItemStack(Material.BUCKET) : null);
         else if (slots.size() > 1)
-            new SlotCheck(event.getPlayer(), EquipmentChangeEvent.EquipMethod.CONSUME, slots).runTaskLater(ItemTag.get(), 1L);
+            new SlotCheck(event.getPlayer(), EquipmentChangeEvent.EquipMethod.CONSUME, slots).schedule();
         else // 3rd party plugin
             if (VersionUtils.isVersionAfter(1, 9))// safe
                 new SlotCheck(event.getPlayer(), EquipmentChangeEvent.EquipMethod.CONSUME,
-                        Arrays.asList(EquipmentSlot.HAND, EquipmentSlot.OFF_HAND)).runTaskLater(ItemTag.get(), 1L);
+                        Arrays.asList(EquipmentSlot.HAND, EquipmentSlot.OFF_HAND)).schedule();
     }
 
     protected void handle(PlayerItemHeldEvent event) {
@@ -404,71 +395,29 @@ public abstract class EquipmentChangeListenerBase implements Listener {
                 : null;
     }
 
-    private class TimerCheckTask extends BukkitRunnable {
-
-        private TimerCheckTask.PlayerCheck subTask = null;
-
-        @Override
-        public void run() {
-            if (subTask == null)// || subTask.isCancelled())
-                if (!equips.isEmpty()) {
-                    subTask = new TimerCheckTask.PlayerCheck();
-                    subTask.runTaskTimer(ItemTag.get(), 1L, 1L);
-                }
-        }
-
-        public void cancel() {
-            super.cancel();
-            if (subTask != null) {// && !subTask.isCancelled())
-                subTask.cancel();
-                subTask = null;
+    private void startPlayerChecks(Player player) {
+        UUID id = player.getUniqueId();
+        TaskScheduler.cancel(playerTasks.remove(id));
+        Object task = TaskScheduler.repeatAtEntity(ItemTag.get(), player, timerCheckFrequencyTicks, timerCheckFrequencyTicks, () -> {
+            if (!player.isOnline()) {
+                untrackPlayer(player);
+                return;
             }
-        }
-
-        private class PlayerCheck extends BukkitRunnable {
-            private final List<Player> players = new ArrayList<>();
-            private int index = 0;
-
-            private PlayerCheck() {
-                players.addAll(equips.keySet());
+            if (player.hasMetadata("BOT")) return;
+            trackPlayer(player);
+            EnumMap<EquipmentSlot, ItemStack> state = equips.get(player);
+            if (state == null) return;
+            for (EquipmentSlot slot : InventoryUtils.getPlayerEquipmentSlots()) {
+                ItemStack current = getEquip(player, slot);
+                ItemStack previous = state.get(slot);
+                if (!isSimilarIgnoreDamage(previous, current))
+                    onEquipChange(player, EquipmentChangeEvent.EquipMethod.UNKNOWN, slot, previous, current);
             }
-
-            @Override
-            public void run() {
-                int counter = 0;
-                while (counter < maxCheckedPlayerPerTick) {
-                    if (index >= players.size()) {
-                        this.cancel();
-                        if (subTask != null)
-                            subTask = null;
-                        return;
-                    }
-                    Player p = players.get(index);
-                    index++;
-                    if (!p.isOnline()) {
-                        untrackPlayer(p);
-                        continue;
-                    }
-                    if (p.hasMetadata("BOT"))
-                        continue;
-                    trackPlayer(p);
-                    counter++;
-                    for (EquipmentSlot slot : InventoryUtils.getPlayerEquipmentSlots()) {
-                        ItemStack newItem = getEquip(p, slot);
-                        ItemStack oldItem = equips.get(p).get(slot);
-                        if (!isSimilarIgnoreDamage(oldItem, newItem))
-                            onEquipChange(p, EquipmentChangeEvent.EquipMethod.UNKNOWN, slot, oldItem, newItem);
-                    }
-
-                }
-
-            }
-
-        }
-
+        });
+        playerTasks.put(id, task);
     }
 
-    protected class SlotCheck extends BukkitRunnable {
+    protected class SlotCheck implements Runnable {
 
         private final EnumSet<EquipmentSlot> slots = EnumSet.noneOf(EquipmentSlot.class);
         private final Player p;
@@ -488,6 +437,10 @@ public abstract class EquipmentChangeListenerBase implements Listener {
                     onEquipChange(p, EquipmentChangeEvent.EquipMethod.UNKNOWN, slot, equips.get(p).get(slot), getEquip(p, slot));
                 this.slots.add(slot);
             }
+        }
+
+        public void schedule() {
+            TaskScheduler.runAtEntity(ItemTag.get(), p, 1L, this);
         }
 
         public SlotCheck(Player p, EquipmentChangeEvent.EquipMethod method, Collection<EquipmentSlot> slots) {
