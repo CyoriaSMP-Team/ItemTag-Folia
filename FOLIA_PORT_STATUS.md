@@ -1,6 +1,6 @@
 # Folia port status
 
-This branch targets the Spigot API 1.21.11 and keeps the existing plugin configuration, storage format, and dependency declarations. The `folia-supported` metadata declaration has been removed. This repository has not completed a whole-plugin Folia audit, and this build must not be advertised as Folia compatible yet.
+This branch targets the Spigot API 1.21.11 and keeps the existing plugin configuration, storage format, and dependency declarations. `folia-supported: true` is enabled so Folia can load the port for the requested iterative live testing; it is not a claim that the whole plugin is safe. The source and runtime audit continues against the concrete blockers below.
 
 ## Changes in this port
 
@@ -32,5 +32,5 @@ Run `python3 scripts/folia-static-guard.py` locally for the static check. GitHub
 
 - GitHub Actions push run `39042757007` and PR run `39042754248` passed; the test used the `itemtag-folia-development-8` artifact.
 - Before the live check, the original ItemTag JAR and its configuration were backed up. A copy of the development artifact with only `folia-supported: true` added enabled on the Folia 1.21.11 server and logged `ItemTag # Enabled (took 33 ms)`; the server then reached `Done`.
-- The original JAR was restored after this startup-only smoke test. The temporary metadata flag is not in the source or published artifact.
+- The original JAR was restored after this startup-only smoke test. The branch now carries `folia-supported: true` for the requested iterative Folia testing; this metadata does not certify the remaining audit paths.
 - No player joined, and item use, anvil interactions, world travel, and multi-region concurrency remain unverified. This result does not complete the Folia safety audit.

@@ -21,8 +21,8 @@ if "repeatAtEntity" not in equipment:
     errors.append("equipment polling must use entity-owned repeating tasks")
 
 plugin_yml = (root / "src/main/resources/plugin.yml").read_text(encoding="utf-8")
-if "folia-supported: true" in plugin_yml:
-    errors.append("do not advertise Folia support until full audit is complete")
+if "folia-supported: true" not in plugin_yml:
+    errors.append("the Folia test build must include folia-supported: true")
 
 if errors:
     print("\n".join(errors), file=sys.stderr)
