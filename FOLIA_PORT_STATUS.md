@@ -19,7 +19,7 @@ This branch targets the Spigot API 1.21.11 and keeps the existing plugin configu
 
 ## Validation
 
-Run `python3 scripts/folia-static-guard.py` locally for the static check. GitHub Actions runs that check and `mvn --batch-mode --no-transfer-progress verify` using Java 25. This port has not yet been validated by that remote workflow or by enabling it on a Folia server.
+Run `python3 scripts/folia-static-guard.py` locally for the static check. GitHub Actions runs that check and `mvn --batch-mode --no-transfer-progress verify` using Java 25. The workflow passes for the current development branch. A controlled startup smoke test on Folia 1.21.11 also succeeded, but no player-facing behavior or multi-region safety has been validated.
 
 ## GitHub CI and controlled runtime smoke test (2026-10-17)
 
@@ -27,3 +27,10 @@ Run `python3 scripts/folia-static-guard.py` locally for the static check. GitHub
 - The artifact **does not** declare Folia support. For a disposable localhost-only test, an isolated copy was temporarily marked `folia-supported: true`; that test-only JAR is **not published or installed in production**.
 - Disposable Folia 1.21.11-14 test instance with official ItemEdit 3.7.10 loaded the development ItemTag build and logged `ItemTag # Enabled (took 113 ms)` and `Done` with no new ItemTag startup scheduler exception.
 - No player joined; per-player entity scheduler logic, item changes, world travel and multi-region concurrency still need live functional tests. The temporary flag is deliberately absent from published artifacts.
+
+## Controlled production startup smoke test (2026-10-17)
+
+- GitHub Actions push run `39042757007` and PR run `39042754248` passed; the test used the `itemtag-folia-development-8` artifact.
+- Before the live check, the original ItemTag JAR and its configuration were backed up. A copy of the development artifact with only `folia-supported: true` added enabled on the Folia 1.21.11 server and logged `ItemTag # Enabled (took 33 ms)`; the server then reached `Done`.
+- The original JAR was restored after this startup-only smoke test. The temporary metadata flag is not in the source or published artifact.
+- No player joined, and item use, anvil interactions, world travel, and multi-region concurrency remain unverified. This result does not complete the Folia safety audit.
