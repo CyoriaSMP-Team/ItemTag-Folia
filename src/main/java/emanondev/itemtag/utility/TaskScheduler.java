@@ -3,6 +3,7 @@ package emanondev.itemtag.utility;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
@@ -10,6 +11,8 @@ import java.util.function.Consumer;
 /** Runtime bridge for Folia ownership schedulers while retaining Paper's legacy scheduler. */
 public final class TaskScheduler {
     private static final Method ENTITY_SCHEDULER = find(Entity.class, "getScheduler");
+    // Reflect on Folia's public API, not the non-public EntityScheduledTask implementation.
+    private static final Method FOLIA_TASK_CANCEL = findFoliaTaskCancel();
 
     private TaskScheduler() { }
 
@@ -38,7 +41,25 @@ public final class TaskScheduler {
     }
 
     public static void cancel(Object task) {
-        if (task != null) invoke(find(task.getClass(), "cancel"), task);
+        if (task == null) return;
+        if (task instanceof BukkitTask) {
+            ((BukkitTask) task).cancel();
+            return;
+        }
+        if (FOLIA_TASK_CANCEL != null && FOLIA_TASK_CANCEL.getDeclaringClass().isInstance(task)) {
+            invoke(FOLIA_TASK_CANCEL, task);
+            return;
+        }
+        throw new IllegalStateException("Unsupported scheduler task type: " + task.getClass().getName());
+    }
+
+    private static Method findFoliaTaskCancel() {
+        try {
+            Class<?> scheduledTask = Class.forName("io.papermc.paper.threadedregions.scheduler.ScheduledTask");
+            return scheduledTask.getMethod("cancel");
+        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+            return null;
+        }
     }
 
     private static Method required(Class<?> type, String name, Class<?>... args) {
