@@ -65,6 +65,11 @@
             <url>https://repo.codemc.io/repository/maven-public/</url>
             <layout>default</layout>
         </repository>
+        <!-- Official ItemEdit 3.7.10 artifact, from its published Modrinth Maven coordinates -->
+        <repository>
+            <id>modrinth-official</id>
+            <url>https://api.modrinth.com/maven</url>
+        </repository>
     </repositories>
     <dependencies>
         <!-- SuperVanish -->
@@ -123,9 +128,9 @@
         </dependency>
         <!-- ItemEdit -->
         <dependency>
-            <groupId>emanondev.itemedit</groupId>
-            <artifactId>ItemEdit</artifactId>
-            <version>3.7.10</version>
+            <groupId>maven.modrinth</groupId>
+            <artifactId>yx81EHRu</artifactId>
+            <version>ODZyheTG</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>

@@ -2,9 +2,9 @@ package emanondev.itemtag.actions;
 
 import emanondev.itemedit.utility.CompleteUtility;
 import emanondev.itemtag.ItemTag;
+import emanondev.itemtag.utility.TaskScheduler;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,11 +48,8 @@ public class DelayedAction extends Action {
     @Override
     public void execute(Player player, String text) {
         String[] args = text.split(" ");
-        new BukkitRunnable() {
-            public void run() {
-                ActionHandler.handleAction(player, args[1], text.substring(args[0].length() + args[1].length() + 2));
-            }
-        }.runTaskLater(ItemTag.get(), Long.parseLong(args[0]));
+        TaskScheduler.runAtEntity(ItemTag.get(), player, Long.parseLong(args[0]), () ->
+                ActionHandler.handleAction(player, args[1], text.substring(args[0].length() + args[1].length() + 2)));
     }
 
     @Override

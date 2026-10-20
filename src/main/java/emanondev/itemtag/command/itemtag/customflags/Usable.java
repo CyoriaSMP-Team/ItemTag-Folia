@@ -3,6 +3,7 @@ package emanondev.itemtag.command.itemtag.customflags;
 import emanondev.itemedit.utility.InventoryUtils;
 import emanondev.itemedit.utility.VersionUtils;
 import emanondev.itemtag.ItemTag;
+import emanondev.itemtag.utility.TaskScheduler;
 import emanondev.itemtag.command.itemtag.Flag;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
@@ -37,14 +38,14 @@ public class Usable extends CustomFlag {
                         b = event.getPlayer().getTargetBlockExact(7, FluidCollisionMode.SOURCE_ONLY);
                     } else
                         b = null;
-                    Bukkit.getScheduler().runTaskLater(ItemTag.get(), () -> { //TODO folia fix
+                    TaskScheduler.runAtEntity(ItemTag.get(), event.getPlayer(), 1L, () -> {
                         if (!VersionUtils.isVersionAfter(1, 20)) {
                             InventoryUtils.updateView(event.getPlayer());
                         }
                         if (b != null) {//reduce clientside visual glich on liquids only for 1.14+
                             event.getPlayer().sendBlockChange(b.getLocation(), b.getBlockData());
                         }
-                    }, 1L);
+                    });
                 }
             default:
         }
