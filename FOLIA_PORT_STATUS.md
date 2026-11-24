@@ -1,5 +1,8 @@
 # Folia port status
 
+> **Superseded 2026-11-24 — do not deploy this 3.7.7 fork with ItemEdit 4.x.**
+> ItemEdit 4.0.0 changed `APlugin.log` to MiniMessage and rejects the legacy `§c` colour code used by the inherited 3.7.7 error path. ItemTag 3.7.7 therefore fails during `onEnable`; the real exception is masked by the logging crash. Official **ItemTag 4.0.1** (2026-11-09) is Folia-supported and is built against **ItemEdit 4.0.0**. The live CyoriaSMP server now runs `ItemTag-4.0.1.jar` (SHA-256 `8582f9718366ac0b8301cfdd64802c43bf11252c4bb34912f6e3841ebe7bb01e`), enabled in 46 ms with no ItemTag errors. The old `ItemTag-3.7.7.jar` (SHA-256 `00c2448cf356afa810c901980c4202dd051e157f1eb2f8150b4d5bfc40a429e9`) is retained at `plugins/.plugin-rollback/itemtag-3.7.7-20261124/`. This fork is kept for history; upstream 4.x is the supported deployment path.
+
 This branch targets the Spigot API 1.21.11 and keeps the existing plugin configuration, storage format, and dependency declarations. `folia-supported: true` is enabled so Folia can load the port for the requested iterative live testing; it is not a claim that the whole plugin is safe. The source and runtime audit continues against the concrete blockers below.
 
 ## Changes in this port
